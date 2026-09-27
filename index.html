@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Prism Siege</title>
+  <meta name="description" content="A neon twin-stick arena shooter. Break the prisms, grab the shards, keep your multiplier alive.">
+  <meta name="theme-color" content="#04050d">
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="game.css">
+  <script type="module" src="src/main.js"></script>
+</head>
+<body>
+  <canvas id="game" aria-label="Prism Siege arena"></canvas>
+  <div class="vignette" aria-hidden="true"></div>
+
+  <div class="hud" id="hud" hidden>
+    <div class="hud-score">
+      <div class="score" id="score">0</div>
+      <div class="mult" id="mult-box"><span class="x">×</span><span id="mult">1</span></div>
+    </div>
+    <div class="hud-center">
+      <div class="wave" id="wave">WAVE 1</div>
+      <div class="boss-bar" id="boss-bar" hidden><span class="boss-name">WARDEN</span><div class="boss-track"><i id="boss-fill"></i></div></div>
+    </div>
+    <div class="hud-right">
+      <div class="stock" id="lives" aria-label="Lives"></div>
+      <div class="stock bombs" id="bombs" aria-label="Bombs"></div>
+      <button class="icon-button" id="pause-button" type="button" aria-label="Pause">❚❚</button>
+    </div>
+    <div class="powers" id="powers">
+      <div class="power" data-power="spread" hidden><b>SPREAD</b><i></i></div>
+      <div class="power" data-power="rapid" hidden><b>RAPID</b><i></i></div>
+      <div class="power" data-power="pierce" hidden><b>PIERCE</b><i></i></div>
+    </div>
+  </div>
+
+  <div class="banner" id="banner" aria-live="polite"></div>
+
+  <div class="touch-ui" id="touch-ui" hidden>
+    <button type="button" id="touch-dash">DASH</button>
+    <button type="button" id="touch-bomb">BOMB</button>
+  </div>
+
+  <section class="screen title-screen" id="title-screen">
+    <div class="panel">
+      <h1 class="logo"><span class="logo-top">PRISM</span><span class="logo-bottom">SIEGE</span></h1>
+      <p class="tagline">Break the prisms. Grab the shards. Keep your multiplier alive.</p>
+      <button type="button" class="primary" id="play-button">Play</button>
+      <p class="best-line">Best <b id="best-score">0</b></p>
+      <div class="row">
+        <button type="button" id="help-button">How to play</button>
+        <button type="button" id="settings-button">Settings</button>
+      </div>
+      <a class="home-link" href="../">← Treasure Past</a>
+    </div>
+  </section>
+
+  <section class="screen" id="pause-screen" hidden>
+    <div class="panel">
+      <h2>Paused</h2>
+      <button type="button" class="primary" id="resume-button">Resume</button>
+      <div class="row">
+        <button type="button" id="restart-button">Restart</button>
+        <button type="button" id="quit-button">Quit</button>
+      </div>
+      <div class="settings" data-settings></div>
+    </div>
+  </section>
+
+  <section class="screen" id="over-screen" hidden>
+    <div class="panel">
+      <h2>Game over</h2>
+      <p class="new-best" id="new-best" hidden>New best!</p>
+      <div class="final-score" id="final-score">0</div>
+      <dl class="stats">
+        <div><dt>Wave</dt><dd id="stat-wave">1</dd></div>
+        <div><dt>Time</dt><dd id="stat-time">0:00</dd></div>
+        <div><dt>Destroyed</dt><dd id="stat-kills">0</dd></div>
+        <div><dt>Top multiplier</dt><dd id="stat-mult">×1</dd></div>
+      </dl>
+      <ol class="top-scores" id="top-scores"></ol>
+      <button type="button" class="primary" id="again-button">Play again</button>
+      <div class="row">
+        <button type="button" id="title-button">Title</button>
+        <a class="button-link" href="../">Treasure Past</a>
+      </div>
+    </div>
+  </section>
+
+  <dialog class="modal" id="help-dialog">
+    <button type="button" class="modal-close" data-close aria-label="Close">×</button>
+    <h2>How to play</h2>
+    <p>Survive wave after wave of neon prisms. Every enemy you break drops gold <b class="gold">shards</b>: each
+      one raises your score multiplier by 1. Dying resets the multiplier, so stay alive to score big.</p>
+    <div class="controls">
+      <section>
+        <h3>Keyboard &amp; mouse</h3>
+        <ul>
+          <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> move</li>
+          <li>Mouse aims (fires automatically; hold click if auto-fire is off)</li>
+          <li><kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd> aim and fire without a mouse</li>
+          <li><kbd>Space</kbd> or right-click: dash (you can't be hurt mid-dash)</li>
+          <li><kbd>E</kbd> or <kbd>Q</kbd>: bomb</li>
+          <li><kbd>Esc</kbd> or <kbd>P</kbd>: pause</li>
+        </ul>
+      </section>
+      <section>
+        <h3>Gamepad</h3>
+        <ul>
+          <li>Left stick moves, right stick aims and fires</li>
+          <li><b>A</b> / <b>RB</b>: dash · <b>B</b> / <b>LB</b>: bomb · <b>Start</b>: pause</li>
+        </ul>
+        <h3>Touch</h3>
+        <ul>
+          <li>Drag on the left half to move, on the right half to aim and fire</li>
+          <li>Dash and Bomb buttons sit in the corner</li>
+        </ul>
+      </section>
+    </div>
+    <h3>Know your enemy</h3>
+    <ul class="bestiary">
+      <li><i class="swatch mote"></i><b>Mote</b> drifts about aimlessly</li>
+      <li><i class="swatch seeker"></i><b>Seeker</b> homes straight in</li>
+      <li><i class="swatch dodger"></i><b>Dodger</b> side-steps your bullets</li>
+      <li><i class="swatch splitter"></i><b>Splitter</b> tough; bursts into three</li>
+      <li><i class="swatch charger"></i><b>Charger</b> aims, flashes, then rams</li>
+      <li><i class="swatch spitter"></i><b>Spitter</b> keeps away and fires orbs (shoot them down)</li>
+      <li><i class="swatch warden"></i><b>Warden</b> the boss, every 8th wave</li>
+    </ul>
+    <p class="note">Power-ups (<b class="c-spread">S</b>pread, <b class="c-rapid">R</b>apid, <b class="c-pierce">P</b>ierce) last 12
+      seconds. Extra lives and bombs come with score. Enemies flicker in before they can hurt you.</p>
+  </dialog>
+
+  <dialog class="modal" id="settings-dialog">
+    <button type="button" class="modal-close" data-close aria-label="Close">×</button>
+    <h2>Settings</h2>
+    <div class="settings" data-settings></div>
+  </dialog>
+</body>
+</html>

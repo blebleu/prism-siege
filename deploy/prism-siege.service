@@ -1,0 +1,25 @@
+[Unit]
+Description=Prism Siege game server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=prism
+Group=prism
+WorkingDirectory=/opt/prism-siege/app
+Environment=NODE_ENV=production
+# Only Caddy (on the same machine) talks to the game; the firewall keeps port 3010 closed anyway.
+Environment=HOST=127.0.0.1
+Environment=PORT=3010
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=3
+# Sandboxing: the game can only write inside its own folder.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/prism-siege
+
+[Install]
+WantedBy=multi-user.target
