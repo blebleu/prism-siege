@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { BOSS_EVERY, formationPoints, planWave } from '../src/director.js';
+import { BOSS_EVERY, crowdCap, formationPoints, paceFor, planWave, toughnessFor } from '../src/director.js';
 import { ENEMIES } from '../src/enemies.js';
-import { createWorld } from '../src/sim.js';
+import { createWorld, spawnEnemy, step, idleInput } from '../src/sim.js';
 import { seededRandom } from '../src/util.js';
 
 test('waves grow, only use unlocked enemies, and introduce new ones on their own', () => {
@@ -43,4 +43,30 @@ test('formations stay inside the arena and keep their distance from the player',
       }
     }
   }
+});
+
+test('early waves are slow and gentle; health grows only slowly until the late game', () => {
+  assert.ok(paceFor(1) < 0.85 && paceFor(8) >= 1);
+  assert.equal(toughnessFor(8), 1);
+  assert.ok(toughnessFor(20) < 1.8, 'wave 20 enemies take less than twice the hits');
+  assert.ok(toughnessFor(25) < 2.1);
+  assert.ok(toughnessFor(45) > 10, 'the late game still ends every run');
+  for (let n = 1; n < 80; n++) {
+    assert.ok(toughnessFor(n + 1) >= toughnessFor(n));
+    assert.ok(paceFor(n + 1) > paceFor(n));
+  }
+});
+
+test('new groups wait while the arena is at the crowd cap', () => {
+  const w = createWorld({ seed: 4 });
+  w.wave = 9; // the next wave is 10
+  w.director.t = 0;
+  const cap = crowdCap(10);
+  for (let i = 0; i < cap; i++) spawnEnemy(w, 'mote', 60 + (i % 20) * 70, 60 + Math.floor(i / 20) * 70, { spawnT: 99 });
+  for (let t = 0; t < 20; t += 1 / 60) { step(w, idleInput(), 1 / 60); w.events.length = 0; }
+  assert.equal(w.wave, 10);
+  assert.equal(w.enemies.length, cap, 'nothing new came in');
+  w.enemies.length = cap - 10;
+  for (let t = 0; t < 3; t += 1 / 60) { step(w, idleInput(), 1 / 60); w.events.length = 0; }
+  assert.ok(w.enemies.length > cap - 10, 'groups resume once there is room');
 });

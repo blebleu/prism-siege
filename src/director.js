@@ -1,10 +1,13 @@
 // The wave director: builds each wave from a point budget, spawns it in groups and formations over time, and
-// starts the next wave once the arena is (nearly) clear. Every eighth wave is a boss wave.
+// starts the next wave once the arena is (nearly) clear. Every eighth wave is a boss wave. A cap on how many
+// enemies can be alive at once holds back new groups until the player thins the crowd, so waves never pile up.
 import { ENEMIES } from './enemies.js';
 import { clamp, TAU } from './util.js';
 
 export const BOSS_EVERY = 8;
-const REST = 1.6;
+const FIRST_WAVE_DELAY = 3;
+// The pause between waves: longer for the first few, while the player finds their feet.
+const restAfter = n => n <= 3 ? 3 : 2;
 const MARGIN = 60;
 const SAFE_DISTANCE = 380;
 
@@ -13,20 +16,24 @@ const GROUP_SIZE = { mote: [4, 10], seeker: [3, 8], dodger: [2, 5], splitter: [1
 const FORMATIONS = { mote: ['cluster', 'corners', 'edge'], seeker: ['cluster', 'corners', 'edge', 'ring'], dodger: ['cluster', 'corners'], splitter: ['cluster', 'corners'], charger: ['corners', 'edge'], spitter: ['corners', 'edge'] };
 
 export const isBossWave = n => n > 0 && n % BOSS_EVERY === 0;
-// Enemies get a little faster each wave, up to 35% faster.
-export const paceFor = n => 1 + Math.min(0.35, (n - 1) * 0.018);
-// From wave 7 they also get 10% tougher every wave, so even a fully upgraded ship is overwhelmed in the end.
-export const toughnessFor = n => 1.1 ** Math.max(0, n - 6);
+// Enemies start slow and get a little faster each wave: 80% speed on wave 1, full speed by wave 8, 135% by wave
+// 20, and from then on 1.2% more a wave, without limit: speed, not health, is what finally overwhelms a strong ship.
+export const paceFor = n => 0.8 + Math.min(0.55, (n - 1) * 0.03) + Math.max(0, n - 20) * 0.012;
+// From wave 9 they also get 6% more health each wave, to keep up with an upgraded ship. After wave 25, which only a
+// strong run reaches, it compounds 8% a wave as well, so even a fully upgraded ship is overwhelmed in the end.
+export const toughnessFor = n => (1 + Math.max(0, n - 8) * 0.06) * 1.08 ** Math.max(0, n - 25);
+// How many enemies may be alive at once.
+export const crowdCap = n => Math.min(80, 18 + 2 * n);
 
 export function createDirector() {
-  return { state: 'rest', t: 1.2, plan: null, elapsed: 0, next: 0 };
+  return { state: 'rest', t: FIRST_WAVE_DELAY, plan: null, elapsed: 0, next: 0 };
 }
 
 // The list of groups for wave n: [{ type, count, formation, at }], `at` in seconds from the wave's start.
 export function planWave(n, rand) {
   const pick = list => list[Math.floor(rand() * list.length)];
   const groups = [];
-  let budget = Math.floor(8 + n * 5 + n * n * 0.15);
+  let budget = Math.floor(4 + n * 4 + n * n * 0.12);
   if (isBossWave(n)) {
     groups.push({ type: 'warden', count: 1, formation: 'center', at: 0.5 });
     budget = Math.floor(budget / 3);
@@ -119,7 +126,8 @@ export function updateDirector(w, dt, act) {
   }
   d.elapsed += dt;
   const { groups } = d.plan;
-  while (d.next < groups.length && groups[d.next].at <= d.elapsed) {
+  // A group waits (past its time) while the arena is at the crowd cap; a boss always comes in.
+  while (d.next < groups.length && groups[d.next].at <= d.elapsed && (groups[d.next].type === 'warden' || w.enemies.length < crowdCap(w.wave))) {
     const group = groups[d.next++];
     const bossIndex = Math.floor(w.wave / BOSS_EVERY);
     const options = { pace: paceFor(w.wave), hpScale: group.type === 'warden' ? 1 + (bossIndex - 1) * 0.5 : toughnessFor(w.wave) };
@@ -129,10 +137,11 @@ export function updateDirector(w, dt, act) {
   const bossAlive = w.enemies.some(e => ENEMIES[e.type].boss);
   const lastAt = groups.length ? groups[groups.length - 1].at : 0;
   const leftover = w.wave < 3 ? 0 : Math.min(4, Math.floor(w.wave / 3));
-  const cleared = !bossAlive && (w.enemies.length <= leftover || d.elapsed > lastAt + 25);
+  // Stragglers (a wandering mote in a corner) don't hold the next wave up forever.
+  const cleared = !bossAlive && (w.enemies.length <= leftover || d.elapsed > lastAt + 45);
   if (cleared) {
     d.state = 'rest';
-    d.t = REST;
+    d.t = restAfter(w.wave);
     act.emit({ type: 'waveClear', n: w.wave });
   }
 }

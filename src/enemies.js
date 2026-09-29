@@ -171,7 +171,7 @@ export const BEHAVIOURS = {
 // A new enemy of the given type. `pace` scales its speed with the wave.
 export function makeEnemy(type, x, y, rand, { pace = 1, hpScale = 1, spawnT = 0.8 } = {}) {
   const def = ENEMIES[type];
-  const hp = Math.max(1, Math.round(def.hp * hpScale));
+  const hp = def.hp * hpScale;
   return {
     type, x, y, vx: 0, vy: 0, r: def.r, hp, maxHp: hp, pace,
     spawnT: def.boss ? 1.8 : spawnT, t: 0, flash: 0, hitWall: false,

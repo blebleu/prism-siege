@@ -1,6 +1,8 @@
 // A simple autopilot that plays behind the title screen (and in tests): steer away from nearby danger and the
-// walls, drift toward shards, shoot the nearest enemy, and dash or bomb when cornered.
-export function botInput(w) {
+// walls, drift toward shards, shoot the nearest enemy, and dash or bomb when cornered. `skill` 1 plays with
+// perfect aim and reflexes; lower values aim loosely, don't lead targets, notice danger later and dash and bomb
+// late, which is closer to a person (0.5 is a fair stand-in when balancing).
+export function botInput(w, skill = 1) {
   const p = w.player;
   const input = { moveX: 0, moveY: 0, aimX: 0, aimY: 0, fire: false, dash: false, bomb: false };
   if (!p.alive) return input;
@@ -8,7 +10,7 @@ export function botInput(w) {
   for (const e of w.enemies) {
     const dx = p.x - e.x, dy = p.y - e.y, d = Math.hypot(dx, dy) || 1;
     if (e.spawnT <= 0 && d < nearestD) { nearest = e; nearestD = d; }
-    const reach = 260 + e.r * 3;
+    const reach = (160 + 100 * skill) + e.r * 3;
     if (d < reach) {
       const weight = ((reach - d) / reach) ** 2 * 3;
       mx += (dx / d) * weight;
@@ -33,17 +35,16 @@ export function botInput(w) {
   const len = Math.hypot(mx, my);
   if (len > 0.05) { input.moveX = mx / Math.max(1, len); input.moveY = my / Math.max(1, len); }
   if (nearest) {
-    // Lead the target a little.
-    const lead = nearestD / 1200;
-    input.aimX = nearest.x + nearest.vx * lead - p.x;
-    input.aimY = nearest.y + nearest.vy * lead - p.y;
-    const aim = Math.hypot(input.aimX, input.aimY) || 1;
-    input.aimX /= aim;
-    input.aimY /= aim;
+    // Lead the target a little (a skilled pilot), plus a slow wobble for a less skilled one.
+    const lead = skill >= 1 ? nearestD / 1200 : 0;
+    const wobble = (1 - skill) * 0.6 * Math.sin(w.time * 2.3) * Math.sin(w.time * 5.1 + 1);
+    const angle = Math.atan2(nearest.y + nearest.vy * lead - p.y, nearest.x + nearest.vx * lead - p.x) + wobble;
+    input.aimX = Math.cos(angle);
+    input.aimY = Math.sin(angle);
     input.fire = true;
   }
-  input.dash = nearestD < 50 + (nearest?.r ?? 0);
-  input.bomb = close >= 6;
+  input.dash = nearestD < (20 + 30 * skill) + (nearest?.r ?? 0);
+  input.bomb = close >= (skill >= 1 ? 6 : 9);
   return input;
 }
 

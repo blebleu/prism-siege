@@ -48,9 +48,18 @@ sound is synthesized with the Web Audio API.
 
 The simulation takes all its randomness from a seed, so a game replays exactly from its seed and inputs. That's
 what lets the tests play long games in a fraction of a second, and it's the place to start when tuning
-difficulty: run the autopilot over a few seeds and see which wave and level it reaches. Upgrades make the ship
-much stronger over a run, so enemy toughness compounds by 10% a wave from wave 7 (`toughnessFor` in
-`src/director.js`); that, the XP curve (`xpToNext`) and the upgrade numbers (`shipStats`) are the main dials.
+difficulty: run the autopilot over a few seeds and see which wave and level it reaches, and how crowded the
+arena gets. `botInput(world, 0.5)` plays with looser aim and slower reflexes; even so it dodges better than a
+person, so treat its results as an upper bound.
+
+The difficulty dials, all in `src/director.js` unless noted:
+- `paceFor`: enemy speed. 80% on wave 1, full by wave 8, then still rising slowly after wave 20.
+- `toughnessFor`: enemy health. Unchanged to wave 8, +6% a wave after that, compounding only after wave 25,
+  so the middle of a run isn't a wall of bullet sponges but every run still ends.
+- `crowdCap`: how many enemies may be alive at once. New groups wait while the arena is full, so waves
+  never pile up on a player who's struggling.
+- Wave size (`planWave`), the calm before wave 1 and the rest between waves.
+- `xpToNext` and `shipStats` in `src/upgrades.js`: how fast the ship levels up and how strong upgrades are.
 
 On `localhost` only, `?wave=8` starts a game at that wave, and the browser console has `prism` (the live world,
 plus `prism.advance(seconds)` and `prism.autopilot = true`).
