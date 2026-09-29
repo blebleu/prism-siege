@@ -1,11 +1,12 @@
 // Wires the game together: screens, the frame loop, turning simulation events into effects and sound, the HUD,
 // settings and saved scores. The title screen plays a demo game driven by the autopilot in bot.js.
-import { createWorld, POWER_TIME, POWERS, step } from './sim.js';
-import { botInput } from './bot.js';
+import { chooseUpgrade, createWorld, step } from './sim.js';
+import { botChoice, botInput } from './bot.js';
+import { rankLabel, UPGRADES, xpToNext } from './upgrades.js';
 import { ENEMIES } from './enemies.js';
 import { createGrid, pushGrid, updateGrid } from './grid.js';
 import { addShake, createFx, flash, floatText, hitstop, ring, sparks, updateFx } from './fx.js';
-import { createRenderer, POWER_COLORS } from './render.js';
+import { createRenderer } from './render.js';
 import { createInput } from './input.js';
 import { createAudio } from './audio.js';
 import { loadSave, requestPersistentStorage, writeSave } from './save.js';
@@ -36,7 +37,7 @@ const isLocal = ['localhost', '127.0.0.1', '[::1]'].includes(location.hostname);
 const startWave = isLocal ? Math.max(1, Number(new URLSearchParams(location.search).get('wave')) || 1) : 1;
 
 // ---- Game state ----
-let mode = 'title'; // title | playing | paused | over
+let mode = 'title'; // title | playing | choosing (a level-up) | paused | over
 let world, grid, fx, demo, trail;
 let autopilot = false; // local testing: the autopilot flies a real game
 const newSeed = () => (Math.random() * 2 ** 32) >>> 0;
@@ -52,7 +53,7 @@ function freshWorld(isDemo) {
 }
 
 function showOnly(screen) {
-  for (const id of ['title-screen', 'pause-screen', 'over-screen']) $(id).hidden = id !== screen;
+  for (const id of ['title-screen', 'levelup-screen', 'pause-screen', 'over-screen']) $(id).hidden = id !== screen;
 }
 
 function setMode(next) {
@@ -90,6 +91,7 @@ function pause() {
   if (mode !== 'playing') return;
   setMode('paused');
   showOnly('pause-screen');
+  renderBuild();
   audio.setPaused(true);
   $('resume-button').focus();
 }
@@ -127,6 +129,8 @@ function gameOver() {
     $('stat-time').textContent = formatTime(w.time);
     $('stat-kills').textContent = w.kills.toLocaleString('en-US');
     $('stat-mult').textContent = `×${w.maxMult}`;
+    $('stat-level').textContent = w.level;
+    renderBuild();
     const list = $('top-scores');
     list.replaceChildren(...scores.top.map((s, i) => {
       const li = document.createElement('li');
@@ -141,6 +145,70 @@ function gameOver() {
     showOnly('over-screen');
     $('again-button').focus();
   }, 1400);
+}
+
+// The upgrades taken this run, as chips on the pause and game-over screens.
+function renderBuild() {
+  const chips = () => Object.entries(world.upgrades).map(([id, rank]) => {
+    const li = document.createElement('li');
+    li.dataset.kind = UPGRADES[id].kind;
+    li.textContent = UPGRADES[id].max === 1 ? UPGRADES[id].name : `${UPGRADES[id].name} ${rankLabel(rank)}`;
+    return li;
+  });
+  for (const list of document.querySelectorAll('[data-build]')) list.replaceChildren(...chips());
+}
+
+// ---- Level-ups ----
+let choiceReadyAt = 0;
+const CHOICE_DELAY = 450; // ms before the cards accept a pick, so a click or key meant for the fight can't take one
+
+function openChoice() {
+  setMode('choosing');
+  showOnly('levelup-screen');
+  $('levelup-level').textContent = world.level;
+  const part = (tag, className, text) => {
+    const el = document.createElement(tag);
+    el.className = className;
+    el.textContent = text;
+    return el;
+  };
+  const cards = world.choice.map((id, i) => {
+    const def = UPGRADES[id], next = (world.upgrades[id] ?? 0) + 1;
+    const rank = def.filler ? '' : def.max === 1 ? 'Unique' : `Rank ${rankLabel(next)} of ${rankLabel(def.max)}`;
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'choice';
+    card.dataset.kind = def.kind;
+    card.disabled = true;
+    card.append(part('kbd', '', String(i + 1)), part('span', 'tag', def.kind), part('span', 'name', def.name), part('span', 'rank', rank), part('span', 'text', def.text(next)));
+    card.addEventListener('click', () => pick(i));
+    return card;
+  });
+  $('choices').replaceChildren(...cards);
+  input.resetMenu();
+  choiceReadyAt = performance.now() + CHOICE_DELAY;
+  setTimeout(() => { for (const card of cards) card.disabled = false; }, CHOICE_DELAY);
+}
+
+function pick(index) {
+  if (mode !== 'choosing' || performance.now() < choiceReadyAt || !chooseUpgrade(world, index)) return;
+  for (const event of world.events) react(event);
+  world.events.length = 0;
+  if (world.choice) { openChoice(); return; } // enough XP for another level
+  showOnly(null);
+  setMode('playing');
+  input.clear();
+  lastFrame = performance.now();
+}
+
+// Gamepad on the level-up screen: left/right moves between cards, A takes the focused one.
+function menuPad() {
+  const { move, confirm } = input.menu();
+  const cards = [...document.querySelectorAll('#choices .choice')];
+  if (!cards.length || performance.now() < choiceReadyAt) return;
+  const at = cards.indexOf(document.activeElement);
+  if (move) cards[at < 0 ? 0 : (at + move + cards.length) % cards.length].focus();
+  if (confirm && at >= 0) pick(at);
 }
 
 const formatTime = seconds => `${Math.floor(seconds / 60)}:${String(Math.floor(seconds % 60)).padStart(2, '0')}`;
@@ -210,10 +278,32 @@ function react(e) {
       sparks(fx, e.x, e.y, '#ffd166', 4, 160, 0.25, { size: 1.5 });
       hud.bumpMult();
       break;
-    case 'power':
-      sound('power');
-      ring(fx, e.x, e.y, POWER_COLORS[e.power], 90, 0.5, 4);
-      floatText(fx, e.x, e.y - 26, e.power.toUpperCase(), POWER_COLORS[e.power], 16);
+    case 'levelUp':
+      sound('levelUp');
+      ring(fx, world.player.x, world.player.y, '#ffd166', 140, 0.6, 4);
+      break;
+    case 'upgrade': {
+      const color = KIND_COLORS[UPGRADES[e.id].kind];
+      sound('upgrade');
+      ring(fx, e.x, e.y, color, 110, 0.5, 4);
+      sparks(fx, e.x, e.y, color, 30, 420, 0.5, { size: 1.8 });
+      floatText(fx, e.x, e.y - 34, UPGRADES[e.id].name.toUpperCase(), color, 15);
+      break;
+    }
+    case 'shieldBreak':
+      sound('shieldBreak');
+      addShake(fx, 0.35);
+      ring(fx, e.x, e.y, '#5cf2b0', 200, 0.5, 5);
+      sparks(fx, e.x, e.y, '#5cf2b0', 40, 600, 0.5, { size: 2 });
+      pushGrid(grid, e.x, e.y, 260, 700);
+      break;
+    case 'shieldUp':
+      sound('shieldUp');
+      ring(fx, e.x, e.y, '#5cf2b0', 40, 0.4, 2);
+      break;
+    case 'ram':
+      sparks(fx, e.x, e.y, '#7df9ff', 12, 400, 0.3, { size: 1.8 });
+      addShake(fx, 0.08);
       break;
     case 'dash':
       sound('dash');
@@ -279,10 +369,11 @@ function react(e) {
   }
 }
 
+const KIND_COLORS = { weapon: '#ff4fa3', ship: '#4cc9f0', defense: '#5cf2b0' };
+
 // ---- HUD (only touched when a value changes) ----
 const hud = (() => {
   const shown = {};
-  const powers = Object.fromEntries(POWERS.map(power => [power, document.querySelector(`.power[data-power="${power}"]`)]));
   const setText = (key, el, text) => { if (shown[key] !== text) { shown[key] = text; el.textContent = text; } };
   const setStock = (key, el, count) => {
     if (shown[key] === count) return;
@@ -308,11 +399,9 @@ const hud = (() => {
       const boss = w.enemies.find(e => ENEMIES[e.type].boss);
       $('boss-bar').hidden = !boss;
       if (boss) $('boss-fill').style.transform = `scaleX(${Math.max(0, boss.hp / boss.maxHp)})`;
-      for (const power of POWERS) {
-        const left = w.player.power[power];
-        powers[power].hidden = !(left > 0);
-        if (left > 0) powers[power].lastElementChild.style.transform = `scaleX(${left / POWER_TIME})`;
-      }
+      setText('level', $('level'), `LV ${w.level}`);
+      const fill = Math.min(1, w.xp / xpToNext(w.level)).toFixed(3);
+      if (shown.xp !== fill) { shown.xp = fill; $('xp-fill').style.transform = `scaleX(${fill})`; }
     }
   };
 })();
@@ -340,6 +429,10 @@ function simulate(dt) {
   }
   for (const event of world.events) react(event);
   world.events.length = 0;
+  if (world.choice) {
+    if (demo || autopilot) chooseUpgrade(world, botChoice(world));
+    else if (mode === 'playing') openChoice();
+  }
 
   if (p.alive && p.dashT > 0) trail.push({ x: p.x, y: p.y, angle: p.angle, alpha: 1 });
   for (const ghost of trail) ghost.alpha -= dt * 5;
@@ -359,6 +452,7 @@ function frame(now) {
   lastFrame = now;
   if (input.takePause()) mode === 'playing' ? pause() : mode === 'paused' && resume();
   if (mode !== 'paused') simulate(dt);
+  if (mode === 'choosing') menuPad();
   const usingMouse = input.device === 'mouse' && input.mouse.seen;
   document.body.classList.toggle('mouse', usingMouse);
   $('touch-ui').hidden = !(mode === 'playing' && input.device === 'touch');
@@ -428,6 +522,8 @@ addEventListener('keydown', event => {
   if (document.querySelector('dialog[open]') || event.repeat) return;
   const onButton = document.activeElement instanceof HTMLButtonElement;
   if (event.code === 'Enter' && !onButton && (mode === 'title' || mode === 'over')) startGame();
+  const digit = /^(Digit|Numpad)([1-3])$/.exec(event.code);
+  if (digit && mode === 'choosing') pick(Number(digit[2]) - 1);
 });
 
 // Pause when the player leaves the tab or window.

@@ -1,12 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createWorld, idleInput, spawnEnemy, step } from '../src/sim.js';
-import { botInput } from '../src/bot.js';
+import { chooseUpgrade, createWorld, idleInput, spawnEnemy, step } from '../src/sim.js';
+import { botChoice, botInput } from '../src/bot.js';
 
 const DT = 1 / 60;
+// Plays for `seconds`, answering any level-up with the autopilot's pick.
 const run = (w, seconds, input = idleInput) => {
   const events = [];
   for (let t = 0; t < seconds; t += DT) {
+    if (w.choice) chooseUpgrade(w, botChoice(w));
     step(w, typeof input === 'function' ? input(w) : input, DT);
     events.push(...w.events);
     w.events.length = 0;

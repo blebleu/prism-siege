@@ -46,3 +46,10 @@ export function botInput(w) {
   input.bomb = close >= 6;
   return input;
 }
+
+// The autopilot's pick at a level-up: the first of the offered upgrades in this order of preference.
+const PREFERENCE = ['multishot', 'rapid', 'heavy', 'orbitals', 'shield', 'pierce', 'homing', 'thrusters', 'magnet', 'ricochet', 'tailgun', 'phase', 'ram', 'salvage'];
+export function botChoice(w) {
+  const rank = id => { const i = PREFERENCE.indexOf(id); return i < 0 ? PREFERENCE.length : i; };
+  return w.choice.reduce((best, id, i) => rank(id) < rank(w.choice[best]) ? i : best, 0);
+}

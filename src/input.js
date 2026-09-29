@@ -108,6 +108,21 @@ export function createInput(canvas) {
     return null;
   }
 
+  // Which menu directions and buttons are held on any standard gamepad (d-pad or left stick; A confirms).
+  let menuPrevious = {};
+  function menuState() {
+    const state = { prev: false, next: false, confirm: false };
+    for (const pad of navigator.getGamepads?.() ?? []) {
+      if (!pad || pad.mapping !== 'standard') continue;
+      const held = i => !!pad.buttons[i]?.pressed;
+      const [x = 0, y = 0] = pad.axes;
+      state.prev ||= held(14) || held(12) || x < -0.6 || y < -0.6;
+      state.next ||= held(15) || held(13) || x > 0.6 || y > 0.6;
+      state.confirm ||= held(0);
+    }
+    return state;
+  }
+
   // The input for this frame. `player` is the ship's world position; screenToWorld converts the mouse.
   function read({ player, screenToWorld, autofire }) {
     const input = { moveX: 0, moveY: 0, aimX: 0, aimY: 0, fire: false, dash: presses.dash, bomb: presses.bomb };
@@ -145,6 +160,15 @@ export function createInput(canvas) {
     get mouse() { return mouse; },
     press,
     setCapturing(on) { capturing = on; },
+    // Gamepad menu navigation: { move: -1 | 0 | 1, confirm } for presses since the last call. resetMenu() first
+    // takes a snapshot, so a button already held down (say, A from dashing) doesn't count as a press.
+    resetMenu() { menuPrevious = menuState(); },
+    menu() {
+      const now = menuState(), before = menuPrevious;
+      menuPrevious = now;
+      const pressed = key => now[key] && !before[key];
+      return { move: pressed('next') ? 1 : pressed('prev') ? -1 : 0, confirm: pressed('confirm') };
+    },
     takePause() { const p = presses.pause; presses.pause = false; return p; },
     clear() { presses.dash = presses.bomb = presses.pause = false; mouse.down = false; sticks.move = sticks.aim = null; },
     // Draws the two touch sticks (screen space) while a finger is down.

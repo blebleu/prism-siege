@@ -28,10 +28,9 @@
       <div class="stock bombs" id="bombs" aria-label="Bombs"></div>
       <button class="icon-button" id="pause-button" type="button" aria-label="Pause">❚❚</button>
     </div>
-    <div class="powers" id="powers">
-      <div class="power" data-power="spread" hidden><b>SPREAD</b><i></i></div>
-      <div class="power" data-power="rapid" hidden><b>RAPID</b><i></i></div>
-      <div class="power" data-power="pierce" hidden><b>PIERCE</b><i></i></div>
+    <div class="xp-bar" aria-label="Level">
+      <span class="xp-level" id="level">LV 1</span>
+      <div class="xp-track"><i id="xp-fill"></i></div>
     </div>
   </div>
 
@@ -56,6 +55,15 @@
     </div>
   </section>
 
+  <section class="screen levelup-screen" id="levelup-screen" hidden>
+    <div class="levelup">
+      <p class="levelup-kicker">Level <b id="levelup-level">2</b></p>
+      <h2>Choose an upgrade</h2>
+      <div class="choices" id="choices"></div>
+      <p class="levelup-hint"><span class="hint-keys">Click a card, or press <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd></span><span class="hint-touch">Tap a card to take it</span></p>
+    </div>
+  </section>
+
   <section class="screen" id="pause-screen" hidden>
     <div class="panel">
       <h2>Paused</h2>
@@ -64,6 +72,7 @@
         <button type="button" id="restart-button">Restart</button>
         <button type="button" id="quit-button">Quit</button>
       </div>
+      <ul class="build" data-build aria-label="Your upgrades"></ul>
       <div class="settings" data-settings></div>
     </div>
   </section>
@@ -78,7 +87,9 @@
         <div><dt>Time</dt><dd id="stat-time">0:00</dd></div>
         <div><dt>Destroyed</dt><dd id="stat-kills">0</dd></div>
         <div><dt>Top multiplier</dt><dd id="stat-mult">×1</dd></div>
+        <div><dt>Level</dt><dd id="stat-level">1</dd></div>
       </dl>
+      <ul class="build" data-build aria-label="Your upgrades"></ul>
       <ol class="top-scores" id="top-scores"></ol>
       <button type="button" class="primary" id="again-button">Play again</button>
       <div class="row">
@@ -92,7 +103,9 @@
     <button type="button" class="modal-close" data-close aria-label="Close">×</button>
     <h2>How to play</h2>
     <p>Survive wave after wave of neon prisms. Every enemy you break drops gold <b class="gold">shards</b>: each
-      one raises your score multiplier by 1. Dying resets the multiplier, so stay alive to score big.</p>
+      one raises your score multiplier by 1 and gives 1 XP. Dying resets the multiplier, so stay alive to score big.</p>
+    <p>Each level-up pauses the fight and offers three upgrades: more guns, piercing or bouncing bullets,
+      orbiting prisms, a shield, a faster ship… Upgrades stack and last the whole run, even after you lose a life.</p>
     <div class="controls">
       <section>
         <h3>Keyboard &amp; mouse</h3>
@@ -128,8 +141,8 @@
       <li><i class="swatch spitter"></i><b>Spitter</b> keeps away and fires orbs (shoot them down)</li>
       <li><i class="swatch warden"></i><b>Warden</b> the boss, every 8th wave</li>
     </ul>
-    <p class="note">Power-ups (<b class="c-spread">S</b>pread, <b class="c-rapid">R</b>apid, <b class="c-pierce">P</b>ierce) last 12
-      seconds. Extra lives and bombs come with score. Enemies flicker in before they can hurt you.</p>
+    <p class="note">Extra lives and bombs come with score. Enemies flicker in before they can hurt you, and get
+      tougher with every wave.</p>
   </dialog>
 
   <dialog class="modal" id="settings-dialog">

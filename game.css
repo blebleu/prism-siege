@@ -45,12 +45,10 @@ body.playing.mouse canvas#game { cursor: none; }
 .stock i { width: 14px; height: 14px; display: block; background: var(--cyan); clip-path: polygon(100% 50%, 0 100%, 25% 50%, 0 0); filter: drop-shadow(0 0 4px var(--cyan)); transform: rotate(-90deg); }
 .stock.bombs i { background: none; border: 2px solid #fff; border-radius: 50%; clip-path: none; transform: none; width: 13px; height: 13px; filter: drop-shadow(0 0 3px #fff); }
 .icon-button { pointer-events: auto; background: rgba(255, 255, 255, 0.06); border: 1px solid var(--line); color: var(--ink); width: 36px; height: 36px; border-radius: 10px; font-size: 12px; cursor: pointer; }
-.powers { position: fixed; left: max(16px, env(safe-area-inset-left)); bottom: max(14px, env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 6px; }
-.power { display: flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 800; letter-spacing: 0.18em; }
-.power i { display: block; width: 90px; height: 4px; border-radius: 2px; background: currentColor; transform-origin: left; box-shadow: 0 0 8px currentColor; }
-.power[data-power="spread"], .c-spread { color: var(--pink); }
-.power[data-power="rapid"], .c-rapid { color: var(--sky); }
-.power[data-power="pierce"], .c-pierce { color: var(--green); }
+.xp-bar { position: fixed; left: 50%; transform: translateX(-50%); bottom: max(14px, env(safe-area-inset-bottom)); width: min(460px, calc(100% - 200px)); display: flex; align-items: center; gap: 10px; }
+.xp-level { font-size: 12px; font-weight: 800; letter-spacing: 0.15em; color: var(--gold); text-shadow: 0 0 8px rgba(255, 209, 102, 0.6); white-space: nowrap; }
+.xp-track { flex: 1; height: 6px; border-radius: 3px; background: rgba(255, 209, 102, 0.12); border: 1px solid rgba(255, 209, 102, 0.3); overflow: hidden; }
+.xp-track i { display: block; height: 100%; background: linear-gradient(90deg, #ffb347, #ffd166); transform-origin: left; transform: scaleX(0); box-shadow: 0 0 10px #ffd166; transition: transform 0.15s; }
 
 /* ---------- Banner ---------- */
 .banner { position: fixed; left: 0; right: 0; top: 34%; text-align: center; pointer-events: none; font-weight: 900; font-size: clamp(28px, 6vw, 64px); letter-spacing: 0.25em; opacity: 0; text-shadow: 0 0 18px rgba(125, 249, 255, 0.8); }
@@ -103,6 +101,36 @@ button.primary:hover { background: linear-gradient(135deg, #6573ff, #c26bff); bo
 .top-scores li { display: flex; justify-content: space-between; padding: 3px 6px; border-radius: 6px; }
 .top-scores li.current { color: var(--gold); background: rgba(255, 209, 102, 0.08); }
 
+/* ---------- Level-up ---------- */
+.levelup-screen { background: radial-gradient(ellipse at center, rgba(4, 5, 13, 0.55), rgba(4, 5, 13, 0.85)); }
+.levelup { width: min(820px, 100%); display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; animation: rise 0.25s ease-out; }
+.levelup-kicker { margin: 0; color: var(--gold); font-weight: 800; letter-spacing: 0.35em; text-transform: uppercase; text-shadow: 0 0 12px rgba(255, 209, 102, 0.7); }
+.levelup-hint { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; width: 100%; }
+.choice { --accent: var(--pink); position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-height: 170px; padding: 18px 16px 16px; text-align: left; border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent); border-radius: 16px; background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 16%, #0b0e26), #0b0e26 70%); box-shadow: 0 0 22px color-mix(in srgb, var(--accent) 25%, transparent); }
+.choice:hover, .choice:focus-visible { border-color: var(--accent); background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 28%, #0b0e26), #0b0e26 75%); transform: translateY(-3px); }
+.choice:disabled { opacity: 0.55; cursor: default; transform: none; }
+.choice[data-kind="ship"] { --accent: var(--sky); }
+.choice[data-kind="defense"] { --accent: var(--green); }
+.choice .tag { font-size: 10px; font-weight: 800; letter-spacing: 0.25em; text-transform: uppercase; color: var(--accent); }
+.choice .name { font-size: 19px; font-weight: 800; color: #fff; }
+.choice .rank { font-size: 12px; font-weight: 700; color: var(--gold); letter-spacing: 0.1em; }
+.choice .text { font-size: 14px; font-weight: 500; line-height: 1.4; color: var(--ink); }
+.choice kbd { position: absolute; top: 12px; right: 12px; }
+.hint-touch { display: none; }
+@media (pointer: coarse) {
+  .choice kbd, .hint-keys { display: none; }
+  .hint-touch { display: inline; }
+}
+@keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+
+.build { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; }
+.build li { font-size: 12px; font-weight: 700; padding: 4px 9px; border-radius: 999px; border: 1px solid var(--line); background: rgba(255, 255, 255, 0.04); }
+.build li[data-kind="weapon"] { color: #ffb0d6; border-color: rgba(255, 79, 163, 0.4); }
+.build li[data-kind="ship"] { color: #a6e6fa; border-color: rgba(76, 201, 240, 0.4); }
+.build li[data-kind="defense"] { color: #aef7d6; border-color: rgba(92, 242, 176, 0.4); }
+.build:empty { display: none; }
+
 /* ---------- Settings ---------- */
 .settings { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; width: 100%; }
 .settings button { font-size: 13px; padding: 8px 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
@@ -132,6 +160,9 @@ kbd { display: inline-block; min-width: 22px; padding: 1px 6px; margin-right: 3p
 
 @media (max-width: 560px) {
   .controls, .bestiary { grid-template-columns: 1fr; }
+  .choices { grid-template-columns: 1fr; gap: 10px; }
+  .choice { min-height: 0; padding: 14px 14px 12px; }
+  .xp-bar { width: calc(100% - 120px); left: 16px; transform: none; }
   .hud { grid-template-columns: 1fr auto; }
   .hud-center { grid-column: 1 / -1; grid-row: 2; }
   .score { font-size: 22px; }

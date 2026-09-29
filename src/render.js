@@ -3,6 +3,7 @@
 import { ENEMIES } from './enemies.js';
 import { drawGrid } from './grid.js';
 import { drawFx, shakeOffset } from './fx.js';
+import { ORBITAL, orbitalPositions } from './sim.js';
 import { approach, clamp, TAU } from './util.js';
 
 const BACKGROUND = '#04050d';
@@ -15,8 +16,7 @@ const PLAYER_GLOW = '#7df9ff';
 const BULLET = '#fff2b8';
 const SHOT = '#ff6a3d';
 const SHARD = '#ffd166';
-export const POWER_COLORS = { spread: '#ff4fa3', rapid: '#4cc9f0', pierce: '#5cf2b0' };
-const POWER_LETTERS = { spread: 'S', rapid: 'R', pierce: 'P' };
+const SHIELD = '#5cf2b0';
 // About this much of the arena is visible, whatever the screen size (the ratio adapts to the screen's shape).
 const VIEW_AREA = 1150 * 760;
 
@@ -272,7 +272,7 @@ function drawBullets(ctx, w) {
     ctx.lineTo(b.x - b.vx * 0.022, b.y - b.vy * 0.022);
   }
   ctx.lineCap = 'round';
-  glow(ctx, BULLET, 3);
+  glow(ctx, BULLET, 2 + w.stats.damage); // Heavy Rounds make thicker bullets
   ctx.lineCap = 'butt';
 }
 
@@ -297,27 +297,12 @@ function drawShots(ctx, w) {
 
 function drawPickups(ctx, w) {
   for (const k of w.pickups) {
-    const blinking = k.life < (k.kind === 'shard' ? 1.5 : 2.5) && Math.floor(k.life * 10) % 2 === 0;
-    const alpha = blinking ? 0.25 : 1;
+    const blinking = k.life < 1.5 && Math.floor(k.life * 10) % 2 === 0;
     ctx.save();
     ctx.translate(k.x, k.y);
-    if (k.kind === 'shard') {
-      ctx.rotate(k.spin);
-      poly(ctx, [[0, -7], [5, 0], [0, 7], [-5, 0]]);
-      glow(ctx, SHARD, 1.6, alpha);
-    } else {
-      const color = POWER_COLORS[k.power];
-      const pulse = 1 + Math.sin(w.time * 6) * 0.1;
-      ctx.beginPath();
-      ctx.arc(0, 0, 16 * pulse, 0, TAU);
-      glow(ctx, color, 2.5, alpha);
-      ctx.globalAlpha = alpha;
-      ctx.fillStyle = color;
-      ctx.font = '800 16px "Segoe UI", system-ui, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(POWER_LETTERS[k.power], 0, 1);
-    }
+    ctx.rotate(k.spin);
+    poly(ctx, [[0, -7], [5, 0], [0, 7], [-5, 0]]);
+    glow(ctx, SHARD, 1.6, blinking ? 0.25 : 1);
     ctx.restore();
   }
   ctx.globalAlpha = 1;
@@ -354,6 +339,23 @@ function drawPlayer(ctx, w, trail) {
     ctx.beginPath();
     ctx.arc(p.x, p.y, 26, 0, TAU);
     glow(ctx, PLAYER_GLOW, 1.2, Math.min(1, p.invuln) * 0.45);
+  }
+  if (p.shield) {
+    // Deflector: a slowly turning hexagon around the ship while the shield is up.
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.beginPath();
+    ngon(ctx, 6, 24, w.time * 0.8);
+    glow(ctx, SHIELD, 1.6, 0.55 + Math.sin(w.time * 4) * 0.15);
+    ctx.restore();
+  }
+  for (const [x, y] of orbitalPositions(w)) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(w.time * 6);
+    poly(ctx, [[0, -ORBITAL.r], [ORBITAL.r * 0.75, 0], [0, ORBITAL.r], [-ORBITAL.r * 0.75, 0]]);
+    glow(ctx, PLAYER_GLOW, 2.2);
+    ctx.restore();
   }
   ctx.globalAlpha = 1;
 }

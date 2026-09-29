@@ -15,6 +15,8 @@ const FORMATIONS = { mote: ['cluster', 'corners', 'edge'], seeker: ['cluster', '
 export const isBossWave = n => n > 0 && n % BOSS_EVERY === 0;
 // Enemies get a little faster each wave, up to 35% faster.
 export const paceFor = n => 1 + Math.min(0.35, (n - 1) * 0.018);
+// From wave 7 they also get 10% tougher every wave, so even a fully upgraded ship is overwhelmed in the end.
+export const toughnessFor = n => 1.1 ** Math.max(0, n - 6);
 
 export function createDirector() {
   return { state: 'rest', t: 1.2, plan: null, elapsed: 0, next: 0 };
@@ -120,7 +122,7 @@ export function updateDirector(w, dt, act) {
   while (d.next < groups.length && groups[d.next].at <= d.elapsed) {
     const group = groups[d.next++];
     const bossIndex = Math.floor(w.wave / BOSS_EVERY);
-    const options = { pace: paceFor(w.wave), hpScale: group.type === 'warden' ? 1 + (bossIndex - 1) * 0.5 : 1 };
+    const options = { pace: paceFor(w.wave), hpScale: group.type === 'warden' ? 1 + (bossIndex - 1) * 0.5 : toughnessFor(w.wave) };
     for (const [x, y] of formationPoints(group.formation, group.count, w)) act.spawn(group.type, x, y, options);
   }
   if (d.next < groups.length) return;

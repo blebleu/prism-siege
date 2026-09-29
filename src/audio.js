@@ -102,8 +102,19 @@ export function createAudio() {
       if (!throttle('shard', 0.02)) return;
       tone({ type: 'sine', from: 660 * 2 ** (shardChain / 12), time: 0.08, volume: 0.1 });
     },
-    power() {
-      [0, 4, 7, 12].forEach((semi, i) => tone({ type: 'triangle', from: 523 * 2 ** (semi / 12), time: 0.14, volume: 0.18, at: i * 0.05 }));
+    levelUp() {
+      [0, 4, 7, 12, 16].forEach((semi, i) => tone({ type: 'triangle', from: 523 * 2 ** (semi / 12), time: 0.18, volume: 0.18, at: i * 0.06 }));
+    },
+    upgrade() {
+      tone({ type: 'sawtooth', from: 330, to: 1320, time: 0.25, volume: 0.12, attack: 0.02 });
+      [0, 7, 12].forEach((semi, i) => tone({ type: 'triangle', from: 659 * 2 ** (semi / 12), time: 0.2, volume: 0.14, at: 0.08 + i * 0.05 }));
+    },
+    shieldBreak() {
+      hiss({ time: 0.5, volume: 0.6, from: 5000, to: 300, type: 'bandpass', q: 1.5 });
+      tone({ type: 'square', from: 900, to: 200, time: 0.35, volume: 0.15 });
+    },
+    shieldUp() {
+      tone({ type: 'sine', from: 440, to: 880, time: 0.25, volume: 0.12, attack: 0.05 });
     },
     dash() {
       hiss({ time: 0.18, volume: 0.25, from: 800, to: 5000, type: 'bandpass', q: 2 });
