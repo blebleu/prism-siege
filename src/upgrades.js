@@ -4,7 +4,7 @@
 
 // kind groups the cards by colour: weapon, ship (movement and pickups) or defense.
 export const UPGRADES = {
-  rapid:     { name: 'Rapid Fire',      kind: 'weapon',  max: 5, text: () => 'Fire 18% faster' },
+  rapid:     { name: 'Rapid Fire',      kind: 'weapon',  max: 5, text: () => 'Fire 60% faster' },
   multishot: { name: 'Multishot',       kind: 'weapon',  max: 3, text: () => '+1 bullet in every volley' },
   heavy:     { name: 'Heavy Rounds',    kind: 'weapon',  max: 4, text: () => '+50% bullet damage' },
   pierce:    { name: 'Piercing Rounds', kind: 'weapon',  max: 3, text: () => 'Bullets pass through one more enemy' },
@@ -29,8 +29,10 @@ export const xpToNext = level => Math.round(6 + 3 * (level - 1) + 0.6 * (level -
 export function shipStats(ranks = {}) {
   const r = id => ranks[id] ?? 0;
   return {
-    // Fewer, harder-hitting shots: 6 a second at 1.5 damage (Heavy Rounds adds half the base per rank).
-    fireRate: 6 * (1 + 0.18 * r('rapid')),
+    // The ship starts slow, 0.6 shots a second at 1.5 damage, and builds its fire rate up over a run: each
+    // Rapid Fire rank is +60%, compounding, so all five come to about 6 a second. Heavy Rounds adds half the
+    // base damage per rank.
+    fireRate: 0.6 * 1.6 ** r('rapid'),
     streams: 2 + r('multishot'),
     damage: 1.5 * (1 + 0.5 * r('heavy')),
     pierce: r('pierce'),
