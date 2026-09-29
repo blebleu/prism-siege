@@ -448,7 +448,11 @@ function simulate(dt) {
 }
 
 function frame(now) {
-  const dt = Math.min(0.05, (now - lastFrame) / 1000);
+  // The next frame is booked first, so an error in this one can't stop the game for good.
+  requestAnimationFrame(frame);
+  // A frame's timestamp can be slightly earlier than a click handled just before it (which resets lastFrame),
+  // so the gap can come out negative: never run time backwards.
+  const dt = Math.min(0.05, Math.max(0, (now - lastFrame) / 1000));
   lastFrame = now;
   if (input.takePause()) mode === 'playing' ? pause() : mode === 'paused' && resume();
   if (mode !== 'paused') simulate(dt);
@@ -474,7 +478,6 @@ function frame(now) {
   });
   input.drawSticks(ctx);
   if (!demo) hud.update(world);
-  requestAnimationFrame(frame);
 }
 
 // ---- Settings ----

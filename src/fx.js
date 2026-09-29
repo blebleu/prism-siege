@@ -34,6 +34,7 @@ export function flash(fx, color, amount) {
 }
 
 export function updateFx(fx, dt) {
+  dt = Math.max(0, dt);
   fx.t += dt;
   fx.trauma = Math.max(0, fx.trauma - dt * 1.4);
   fx.flash = Math.max(0, fx.flash - dt * 2.5);
@@ -60,10 +61,14 @@ export function shakeOffset(fx, scale) {
   return [Math.sin(t * 1.1) * 18 * s + (Math.random() - 0.5) * 6 * s, Math.cos(t * 0.9) * 18 * s + (Math.random() - 0.5) * 6 * s];
 }
 
+// How far along an effect is, from 1 (just made) to 0 (gone), kept in range so sizes never go negative (the
+// canvas throws on a negative radius).
+const remaining = e => Math.min(1, Math.max(0, e.life / e.max));
+
 // Drawn in world space with additive blending already on.
 export function drawFx(ctx, fx) {
   for (const p of fx.parts) {
-    const k = p.life / p.max;
+    const k = remaining(p);
     ctx.globalAlpha = Math.min(1, k * 1.5);
     ctx.strokeStyle = ctx.fillStyle = p.color;
     if (p.line) {
@@ -79,7 +84,7 @@ export function drawFx(ctx, fx) {
     }
   }
   for (const r of fx.rings) {
-    const k = r.life / r.max;
+    const k = remaining(r);
     ctx.globalAlpha = k;
     ctx.strokeStyle = r.color;
     ctx.lineWidth = r.width * k + 0.5;
@@ -90,7 +95,7 @@ export function drawFx(ctx, fx) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   for (const t of fx.texts) {
-    ctx.globalAlpha = Math.min(1, (t.life / t.max) * 2);
+    ctx.globalAlpha = Math.min(1, remaining(t) * 2);
     ctx.fillStyle = t.color;
     ctx.font = `700 ${t.size}px "Segoe UI", system-ui, sans-serif`;
     ctx.fillText(t.text, t.x, t.y);
