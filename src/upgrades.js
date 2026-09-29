@@ -29,9 +29,10 @@ export const xpToNext = level => Math.round(6 + 3 * (level - 1) + 0.6 * (level -
 export function shipStats(ranks = {}) {
   const r = id => ranks[id] ?? 0;
   return {
-    fireRate: 9 * (1 + 0.18 * r('rapid')),
+    // Fewer, harder-hitting shots: 6 a second at 1.5 damage (Heavy Rounds adds half the base per rank).
+    fireRate: 6 * (1 + 0.18 * r('rapid')),
     streams: 2 + r('multishot'),
-    damage: 1 + 0.5 * r('heavy'),
+    damage: 1.5 * (1 + 0.5 * r('heavy')),
     pierce: r('pierce'),
     bounces: r('ricochet'),
     homing: r('homing'),

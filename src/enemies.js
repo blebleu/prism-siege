@@ -140,7 +140,7 @@ export const BEHAVIOURS = {
     const cx = w.arena.w / 2 + Math.cos(e.t * 0.23) * 330;
     const cy = w.arena.h / 2 + Math.sin(e.t * 0.31) * 190;
     const [nx, ny, d] = toward(e, cx, cy);
-    steer(e, nx, ny, Math.min(80, d), 1.5, dt);
+    steer(e, nx, ny, Math.min(80 * e.pace, d), 1.5, dt);
     const enraged = e.hp < e.maxHp / 2;
     e.spin += dt * (enraged ? 1.3 : 0.6);
     e.burstT -= dt;
@@ -155,7 +155,7 @@ export const BEHAVIOURS = {
     if (e.summonT <= 0) {
       for (let i = 0; i < 3; i++) {
         const a = e.spin + (i / 3) * TAU;
-        act.spawn('seeker', e.x + Math.cos(a) * (e.r + 40), e.y + Math.sin(a) * (e.r + 40));
+        act.spawn('seeker', e.x + Math.cos(a) * (e.r + 40), e.y + Math.sin(a) * (e.r + 40), { pace: e.pace });
       }
       e.summonT = enraged ? 5 : 7;
     }

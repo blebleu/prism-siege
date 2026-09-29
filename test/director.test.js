@@ -45,8 +45,8 @@ test('formations stay inside the arena and keep their distance from the player',
   }
 });
 
-test('early waves are slow and gentle; health grows only slowly until the late game', () => {
-  assert.ok(paceFor(1) < 0.85 && paceFor(8) >= 1);
+test('enemies speed up over the waves; health grows only slowly until the late game', () => {
+  assert.ok(paceFor(20) > paceFor(1) * 1.3);
   assert.equal(toughnessFor(8), 1);
   assert.ok(toughnessFor(20) < 1.8, 'wave 20 enemies take less than twice the hits');
   assert.ok(toughnessFor(25) < 2.1);

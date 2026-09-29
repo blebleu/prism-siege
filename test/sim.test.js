@@ -26,10 +26,10 @@ const aimRight = { ...idleInput(), aimX: 1, fire: true };
 
 test('the game opens calmly, then the first wave arrives away from the player', () => {
   const w = createWorld({ seed: 3 });
-  run(w, 2.5);
+  run(w, 1.8);
   assert.equal(w.wave, 0);
   assert.equal(w.enemies.length, 0);
-  run(w, 1);
+  run(w, 0.5);
   assert.equal(w.wave, 1);
   assert.ok(w.enemies.length > 0);
   for (const e of w.enemies) assert.ok(Math.hypot(e.x - w.player.x, e.y - w.player.y) >= 300, 'spawned too close');

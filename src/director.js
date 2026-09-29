@@ -5,9 +5,8 @@ import { ENEMIES } from './enemies.js';
 import { clamp, TAU } from './util.js';
 
 export const BOSS_EVERY = 8;
-const FIRST_WAVE_DELAY = 3;
-// The pause between waves: longer for the first few, while the player finds their feet.
-const restAfter = n => n <= 3 ? 3 : 2;
+const FIRST_WAVE_DELAY = 2;
+const REST = 1.6; // between waves
 const MARGIN = 60;
 const SAFE_DISTANCE = 380;
 
@@ -16,9 +15,12 @@ const GROUP_SIZE = { mote: [4, 10], seeker: [3, 8], dodger: [2, 5], splitter: [1
 const FORMATIONS = { mote: ['cluster', 'corners', 'edge'], seeker: ['cluster', 'corners', 'edge', 'ring'], dodger: ['cluster', 'corners'], splitter: ['cluster', 'corners'], charger: ['corners', 'edge'], spitter: ['corners', 'edge'] };
 
 export const isBossWave = n => n > 0 && n % BOSS_EVERY === 0;
-// Enemies start slow and get a little faster each wave: 80% speed on wave 1, full speed by wave 8, 135% by wave
-// 20, and from then on 1.2% more a wave, without limit: speed, not health, is what finally overwhelms a strong ship.
-export const paceFor = n => 0.8 + Math.min(0.55, (n - 1) * 0.03) + Math.max(0, n - 20) * 0.012;
+// The game's tempo for enemies: everything they do is written at full speed and runs at 80%, to match the
+// player's ship. A slower game overall, not an easier one.
+export const ENEMY_TEMPO = 0.8;
+// On top of that they get a little faster each wave, 35% by wave 20, and from then on 1.2% more a wave without
+// limit: speed, not health, is what finally overwhelms a strong ship.
+export const paceFor = n => ENEMY_TEMPO * (1 + Math.min(0.35, (n - 1) * 0.018) + Math.max(0, n - 20) * 0.012);
 // From wave 9 they also get 6% more health each wave, to keep up with an upgraded ship. After wave 25, which only a
 // strong run reaches, it compounds 8% a wave as well, so even a fully upgraded ship is overwhelmed in the end.
 export const toughnessFor = n => (1 + Math.max(0, n - 8) * 0.06) * 1.08 ** Math.max(0, n - 25);
@@ -33,7 +35,7 @@ export function createDirector() {
 export function planWave(n, rand) {
   const pick = list => list[Math.floor(rand() * list.length)];
   const groups = [];
-  let budget = Math.floor(4 + n * 4 + n * n * 0.12);
+  let budget = Math.floor(8 + n * 5 + n * n * 0.15);
   if (isBossWave(n)) {
     groups.push({ type: 'warden', count: 1, formation: 'center', at: 0.5 });
     budget = Math.floor(budget / 3);
@@ -141,7 +143,7 @@ export function updateDirector(w, dt, act) {
   const cleared = !bossAlive && (w.enemies.length <= leftover || d.elapsed > lastAt + 45);
   if (cleared) {
     d.state = 'rest';
-    d.t = restAfter(w.wave);
+    d.t = REST;
     act.emit({ type: 'waveClear', n: w.wave });
   }
 }

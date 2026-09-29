@@ -53,7 +53,10 @@ arena gets. `botInput(world, 0.5)` plays with looser aim and slower reflexes; ev
 person, so treat its results as an upper bound.
 
 The difficulty dials, all in `src/director.js` unless noted:
-- `paceFor`: enemy speed. 80% on wave 1, full by wave 8, then still rising slowly after wave 20.
+- Tempo: `PLAYER` in `src/sim.js` (ship speed, dash, bullet speed), `fireRate` and `damage` in `shipStats`,
+  and `ENEMY_TEMPO` for enemies and their shots. Slowing one side means slowing the other to match, or the
+  game gets harder or easier instead of just slower.
+- `paceFor`: enemy speed. Rises 35% by wave 20, then keeps rising slowly.
 - `toughnessFor`: enemy health. Unchanged to wave 8, +6% a wave after that, compounding only after wave 25,
   so the middle of a run isn't a wall of bullet sponges but every run still ends.
 - `crowdCap`: how many enemies may be alive at once. New groups wait while the arena is full, so waves

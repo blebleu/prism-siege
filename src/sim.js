@@ -2,7 +2,7 @@
 // comes from the world's seeded generator, so tests can replay a game exactly. What happened during a step
 // (shots, kills, pickups, deaths) is pushed onto world.events for the renderer and sound to react to.
 import { BEHAVIOURS, ENEMIES, makeEnemy } from './enemies.js';
-import { createDirector, updateDirector } from './director.js';
+import { createDirector, ENEMY_TEMPO, updateDirector } from './director.js';
 import { rollChoices, shipStats, xpToNext } from './upgrades.js';
 import { angleDiff, approach, clamp, seededRandom, TAU } from './util.js';
 
@@ -10,11 +10,11 @@ export const ARENA = { w: 1600, h: 1000 };
 
 export const PLAYER = {
   r: 9,              // hit radius (the ship is drawn larger; a forgiving hitbox feels fair)
-  speed: 430,
+  speed: 340,
   grip: 14,          // how quickly the ship reaches its target speed
-  dashSpeed: 1250,
-  dashTime: 0.15,
-  bulletSpeed: 1200,
+  dashSpeed: 1050,
+  dashTime: 0.17,
+  bulletSpeed: 950,
   respawnDelay: 1.8,
   respawnShield: 2.5
 };
@@ -108,7 +108,9 @@ export function spawnEnemy(w, type, x, y, options) {
   return e;
 }
 
+// Enemy shot speeds are written at full tempo and scaled by ENEMY_TEMPO, like enemy movement (see paceFor).
 function spawnShot(w, x, y, angle, speed) {
+  speed *= ENEMY_TEMPO;
   w.shots.push({ x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, r: 7, life: 7 });
   emit(w, { type: 'enemyShot', x, y });
 }

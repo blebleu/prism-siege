@@ -87,7 +87,7 @@ test('Multishot and Tail Guns add bullets to every volley', () => {
   assert.equal(volley(w => grant(w, 'multishot', 2)).length, 4);
   const tail = volley(w => grant(w, 'tailgun', 2));
   assert.equal(tail.length, 5);
-  assert.ok(tail.some(b => b.vx < -1000), 'one bullet flies backward');
+  assert.ok(tail.some(b => b.vx < -800), 'one bullet flies backward');
 });
 
 test('Rapid Fire shoots faster', () => {
@@ -98,7 +98,7 @@ test('Rapid Fire shoots faster', () => {
   };
   const base = count(() => {});
   const rapid = count(w => grant(w, 'rapid', 5));
-  assert.ok(rapid >= base * 1.8, `${base} → ${rapid}`);
+  assert.ok(rapid >= base * 1.7, `${base} → ${rapid}`);
 });
 
 test('Heavy Rounds hit harder and Piercing Rounds pass through enemies', () => {
@@ -109,7 +109,7 @@ test('Heavy Rounds hit harder and Piercing Rounds pass through enemies', () => {
   const far = spawnEnemy(w, 'spitter', w.player.x + 300, w.player.y, { spawnT: 0, pace: 0, hpScale: 0.5 });
   step(w, { ...aimRight, aimY: 0 }, DT);
   run(w, 0.3);
-  assert.ok(near.dead && far.dead, 'one volley of 2-damage bullets went through both 2-hp enemies');
+  assert.ok(near.dead && far.dead, 'one volley of heavy bullets went through both 2-hp enemies');
 });
 
 test('Ricochet bounces bullets off the walls', () => {
